@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="app-title-tag">MyHub - Thư Viện Học Liệu & Đề Thi</title>
+    <!-- Google Fonts: Nunito & Quicksand for UI, Merriweather & Times New Roman for Word A4 Reading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Nunito:wght@400;600;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Mammoth.js for Word (.docx) Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- PDF.js for PDF File Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <style>
+        /* Precision Word A4 Styles Preservation */
+        .a4-page p {
+            margin-bottom: 0.5em;
+            line-height: 1.5;
+        }
+        .a4-page table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin: 12px 0 !important;
+        }
+        .a4-page td, .a4-page th {
+            border: 1px solid #000 !important;
+            padding: 6px 10px !important;
+            vertical-align: top !important;
+        }
+        .a4-page img {
+            max-width: 100% !important;
+            height: auto !important;
+            display: block;
+            margin: 10px auto;
+        }
+        .a4-page ul { list-style-type: disc; padding-left: 25px; margin: 8px 0; }
+        .a4-page ol { list-style-type: decimal; padding-left: 25px; margin: 8px 0; }
+        .a4-page h1, .a4-page h2, .a4-page h3, .a4-page h4 {
+            font-family: 'Times New Roman', serif;
+            font-weight: bold;
+            color: #000;
+        }
+    </style>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            blue: '#a2d2ff',
+                            softblue: '#bde0fe',
+                            pink: '#ffafcc',
+                            softpink: '#ffc8dd',
+                            mint: '#b9fbc0',
+                            purple: '#cdb4db',
+                            yellow: '#fcf6bd',
+                            peach: '#ffdac1',
+                            cardBg: '#ffffff',
+                            bgLight: '#f8fafc'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Nunito', 'Quicksand', 'sans-serif'],
+                        serifDoc: ['"Times New Roman"', 'Merriweather', 'Georgia', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Hover Bounce Effect */
+        .hover-bounce {
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+        }
+        .hover-bounce:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Editable visual cue */
+        .a4-page[contenteditable="true"] {
+            outline: 2px dashed #3b82f6 !important;
+            outline-offset: 4px;
+        }
+
+        /* Word A4 Ruler & Margin Guide Styling */
+        .word-workspace-container {
+            position: relative;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .word-ruler-horizontal {
+            width: 210mm;
+            height: 24px;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-bottom: 2px solid #94a3b8;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: flex-end;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .ruler-marks {
+            width: 100%;
+            height: 100%;
+            background-image: repeating-linear-gradient(
+                to right,
+                #64748b,
+                #64748b 1px,
+                transparent 1px,
+                transparent 5mm
+            ), repeating-linear-gradient(
+                to right,
+                #475569,
+                #475569 1px,
+                transparent 1px,
+                transparent 10mm
+            );
+            background-size: 5mm 40%, 10mm 70%;
+            background-position: bottom left, bottom left;
+            background-repeat: repeat-x;
+            position: relative;
+        }
+
+        .ruler-margin-left, .ruler-margin-right {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(148, 163, 184, 0.4);
+        }
+        .ruler-margin-left { left: 0; width: 20mm; border-right: 1.5px solid #0284c7; }
+        .ruler-margin-right { right: 0; width: 20mm; border-left: 1.5px solid #0284c7; }
+
+        /* Word A4 Page Simulation Styling */
+        .a4-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            padding: 20px 10px 40px 10px;
+        }
+
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 20mm 25mm 20mm;
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            font-family: 'Times New Roman', Merriweather, Georgia, serif;
+            font-size: 13pt;
+            line-height: 1.6;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        @media screen and (max-width: 820px) {
+            .a4-page {
+                width: 100%;
+                max-width: 210mm;
+                min-height: auto;
+                padding: 15mm 12mm;
+            }
+        }
+
+        /* Print Page Setup */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .a4-wrapper {
+                padding: 0;
+                gap: 0;
+            }
+            .a4-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 15mm 15mm !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-height: 297mm !important;
+                page-break-after: always;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- TOP HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="resetFilters()">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-400 via-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-black shadow-md shadow-sky-200 dark:shadow-none">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 id="brand-name" class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-sky-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                        MyHub
+                    </h1>
+                    <p id="brand-subtitle" class="text-xs font-semibold text-slate-500 dark:text-slate-400 -mt-1">
+                        Thư viện Học liệu & Đề thi
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Action Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Theme Switcher Button -->
+                <button onclick="toggleDarkMode()" title="Chuyển chế độ Sáng/Tối" class="p-3 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+
+                <!-- Live Code Editor Modal Trigger -->
+                <button onclick="openCodeEditor()" title="Trình chỉnh sửa Code trực tiếp" class="p-3 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-800/60 transition-colors flex items-center gap-2 font-bold text-sm px-4">
+                    <i class="fa-solid fa-code"></i>
+                    <span class="hidden md:inline">Code Editor</span>
+                </button>
+
+                <!-- Admin Auth Button -->
+                <button id="admin-auth-btn" onclick="handleAdminAuth()" class="py-2.5 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-md shadow-sky-200 dark:shadow-none transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-lock"></i>
+                    <span id="admin-btn-text">Admin</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- BANNER HERO SECTION -->
+    <section class="relative bg-gradient-to-r from-sky-100 via-pink-100 to-purple-100 dark:from-slate-800 dark:via-purple-950/40 dark:to-slate-800 py-10 px-4 transition-colors">
+        <div class="max-w-4xl mx-auto text-center space-y-3">
+            <span class="inline-block px-4 py-1.5 rounded-full bg-white/80 dark:bg-slate-700/80 text-sky-600 dark:text-sky-300 font-extrabold text-xs tracking-wide uppercase shadow-sm">
+                ✨ Kho Tài Liệu Cá Nhân
+            </span>
+            <h2 id="hero-slogan" class="text-2xl sm:text-4xl font-black text-slate-800 dark:text-white leading-tight">
+                Keep moving forward. One step at a time
+            </h2>
+            <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto">
+                Người huấn luyện phải học tập mãi thì mới làm tốt được công việc của mình. Người huấn luyện nào tự cho mình là biết đủ cả rồi thì người đó là dốt nhất.
+            </p>
+        </div>
+    </section>
+
+    <!-- MAIN APP CONTENT CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+        <!-- 3-LEVEL SCHOOL TABS ([TIỂU HỌC], [THCS], [THPT]) -->
+        <div class="flex flex-wrap justify-center items-center gap-3 p-2 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-700 max-w-2xl mx-auto">
+            <button onclick="selectLevel('tieuhoc')" id="tab-tieuhoc" class="level-tab flex-1 py-3 px-6 rounded-2xl font-extrabold text-sm sm:text-base transition-all duration-200 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-child"></i> TIỂU HỌC
+            </button>
+            <button onclick="selectLevel('thcs')" id="tab-thcs" class="level-tab flex-1 py-3 px-6 rounded-2xl font-extrabold text-sm sm:text-base transition-all duration-200 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-user-graduate"></i> THCS
+            </button>
+            <button onclick="selectLevel('thpt')" id="tab-thpt" class="level-tab flex-1 py-3 px-6 rounded-2xl font-extrabold text-sm sm:text-base transition-all duration-200 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-school"></i> THPT
+            </button>
+        </div>
+
+        <!-- DYNAMIC FILTER BAR -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+
+                <!-- Search Input -->
+                <div class="md:col-span-6 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="search-input" oninput="applyFilters()" placeholder="Tìm kiếm đề thi, bài tập, từ khóa..." class="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm font-semibold">
+                </div>
+
+                <!-- Grade Filter Dropdown -->
+                <div class="md:col-span-3">
+                    <select id="grade-filter" onchange="applyFilters()" class="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
+                        <option value="ALL">Tất cả Khối lớp</option>
+                    </select>
+                </div>
+
+                <!-- Category Filter Dropdown -->
+                <div class="md:col-span-3">
+                    <select id="category-filter" onchange="applyFilters()" class="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
+                        <option value="ALL">Tất cả Thể loại</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Active Filters Summary & Admin Action Buttons -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs font-semibold text-slate-500 border-t border-slate-100 dark:border-slate-700">
+                <div id="filter-status" class="flex items-center gap-2">
+                    <span>Đang hiển thị tài liệu thuộc cấp học: <strong id="current-level-label" class="text-sky-600 dark:text-sky-400">TIỂU HỌC</strong></span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="resetFilters()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline">Xóa bộ lọc</button>
+                    <!-- Admin Edit Filters Button -->
+                    <button id="admin-edit-filters-btn" onclick="openAdminFilterModal()" class="hidden px-3 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-bold text-xs hover:bg-amber-200 transition-colors">
+                        <i class="fa-solid fa-sliders"></i> Quản lý bộ lọc động
+                    </button>
+                    <button id="admin-add-doc-btn" onclick="openDocModal()" class="hidden px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-200 transition-colors">
+                        <i class="fa-solid fa-plus"></i> Thêm học liệu / Upload File
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DOCUMENT CARDS GRID SECTION -->
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-pink-400"></i>
+                    Danh Sách Học Liệu (<span id="doc-count">0</span>)
+                </h3>
+            </div>
+
+            <!-- Grid Container -->
+            <div id="doc-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards injected dynamically via JavaScript -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-16 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+                <i class="fa-solid fa-folder-open text-5xl text-slate-300 dark:text-slate-600 mb-3"></i>
+                <p class="text-lg font-bold text-slate-600 dark:text-slate-300">Không tìm thấy tài liệu phù hợp!</p>
+                <p class="text-sm text-slate-400">Thử thay đổi từ khóa hoặc chọn bộ lọc khác.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ADMIN SETTINGS & MANAGEMENT PANEL -->
+    <div id="admin-panel-drawer" class="hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex justify-end">
+        <div class="w-full max-w-md bg-white dark:bg-slate-800 h-full p-6 overflow-y-auto shadow-2xl flex flex-col justify-between">
+            <div class="space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
+                    <h3 class="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-gears text-sky-500"></i> Quản Trị Website
+                    </h3>
+                    <button onclick="closeAdminDrawer()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+
+                <!-- Customization Form -->
+                <div class="space-y-4">
+                    <h4 class="font-bold text-sm text-sky-600 dark:text-sky-400">Tùy Biến Giao Diện Website</h4>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Tên Website</label>
+                        <input type="text" id="config-site-title" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-bold text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Slogan Banner</label>
+                        <input type="text" id="config-site-slogan" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-bold text-sm">
+                    </div>
+
+                    <button onclick="saveSiteConfig()" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl text-sm transition-all shadow-md">
+                        Lưu Thay Đổi Giao Diện
+                    </button>
+                </div>
+
+                <div class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
+                    <h4 class="font-bold text-sm text-purple-600 dark:text-purple-400">Tác Vụ Quản Trị</h4>
+                    <button onclick="openDocModal()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload / Thêm Học Liệu Mới
+                    </button>
+                    <button onclick="openAdminFilterModal()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> Quản Lý Bộ Lọc Động các Cấp
+                    </button>
+                </div>
+            </div>
+
+            <div class="pt-6 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="logoutAdmin()" class="w-full py-2.5 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 font-bold rounded-xl text-sm hover:bg-rose-200 transition-colors">
+                    <i class="fa-solid fa-right-from-bracket"></i> Đăng Xuất Quản Trị
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORD A4 DOCUMENT READER MODAL (FULL PAGE WORD SIMULATION) -->
+    <div id="word-viewer-modal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col justify-between overflow-hidden">
+        <!-- Top Word Style Navigation Bar -->
+        <div class="bg-slate-800 text-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 no-print border-b border-slate-700 shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow">
+                    <i class="fa-solid fa-file-word"></i>
+                </div>
+                <div>
+                    <h3 id="modal-doc-title" class="text-sm sm:text-base font-bold line-clamp-1 max-w-md text-slate-100">Đề Thi Tiếng Anh</h3>
+                    <p class="text-xs text-slate-400" id="modal-doc-meta">Cấp học • Khối lớp • Thể loại</p>
+                </div>
+            </div>
+
+            <!-- Word Toolbar Actions -->
+            <div class="flex items-center flex-wrap gap-2">
+                <!-- Editable Toggle & Formatting Bar -->
+                <button id="toggle-edit-btn" onclick="toggleInlineEdit()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow">
+                    <i class="fa-solid fa-pen-to-square"></i> <span id="edit-btn-text">Bật Chỉnh Sửa</span>
+                </button>
+
+                <div id="formatting-toolbar" class="hidden flex items-center flex-wrap bg-slate-700 rounded-lg p-1 text-xs gap-1.5 border border-amber-400/40">
+                    <!-- Font Family & Size Selectors -->
+                    <select onchange="formatDoc('fontName', this.value)" class="bg-slate-800 text-slate-200 border border-slate-600 rounded px-1.5 py-1 text-xs font-serifDoc focus:outline-none" title="Font chữ">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Arial">Arial</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Merriweather">Merriweather</option>
+                        <option value="Courier New">Courier New</option>
+                    </select>
+
+                    <select onchange="formatDoc('fontSize', this.value)" class="bg-slate-800 text-slate-200 border border-slate-600 rounded px-1.5 py-1 text-xs focus:outline-none" title="Cỡ chữ">
+                        <option value="2">10pt</option>
+                        <option value="3" selected>12pt / 13pt (Chuẩn)</option>
+                        <option value="4">14pt</option>
+                        <option value="5">18pt (Tiêu đề)</option>
+                        <option value="6">24pt (Lớn)</option>
+                    </select>
+
+                    <div class="h-4 w-px bg-slate-500 mx-0.5"></div>
+
+                    <!-- Basic Formatting -->
+                    <button onclick="formatDoc('bold')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200 font-bold" title="In đậm (Ctrl+B)">B</button>
+                    <button onclick="formatDoc('italic')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200 italic font-serif" title="In nghiêng (Ctrl+I)">I</button>
+                    <button onclick="formatDoc('underline')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200 underline" title="Gạch chân (Ctrl+U)">U</button>
+                    <button onclick="formatDoc('strikeThrough')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200 line-through" title="Gạch ngang">S</button>
+
+                    <!-- Text & Highlight Color -->
+                    <input type="color" onchange="formatDoc('foreColor', this.value)" class="w-6 h-6 p-0 border-none bg-transparent cursor-pointer rounded" title="Màu chữ">
+                    <input type="color" value="#ffff00" onchange="formatDoc('hiliteColor', this.value)" class="w-6 h-6 p-0 border-none bg-transparent cursor-pointer rounded" title="Tô màu nền (Highlight)">
+
+                    <div class="h-4 w-px bg-slate-500 mx-0.5"></div>
+
+                    <!-- Text Alignment -->
+                    <button onclick="formatDoc('justifyLeft')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Căn trái"><i class="fa-solid fa-align-left"></i></button>
+                    <button onclick="formatDoc('justifyCenter')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Căn giữa"><i class="fa-solid fa-align-center"></i></button>
+                    <button onclick="formatDoc('justifyRight')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Căn phải"><i class="fa-solid fa-align-right"></i></button>
+                    <button onclick="formatDoc('justifyFull')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Căn đều 2 bên"><i class="fa-solid fa-align-justify"></i></button>
+
+                    <div class="h-4 w-px bg-slate-500 mx-0.5"></div>
+
+                    <!-- Lists & Indentation -->
+                    <button onclick="formatDoc('insertUnorderedList')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Danh sách dấu chấm"><i class="fa-solid fa-list-ul"></i></button>
+                    <button onclick="formatDoc('insertOrderedList')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Danh sách số"><i class="fa-solid fa-list-ol"></i></button>
+                    <button onclick="formatDoc('outdent')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Giảm thụt lề"><i class="fa-solid fa-outdent"></i></button>
+                    <button onclick="formatDoc('indent')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Thụt lề vào"><i class="fa-solid fa-indent"></i></button>
+
+                    <div class="h-4 w-px bg-slate-500 mx-0.5"></div>
+
+                    <!-- Insert Elements (Table, Horizontal Line) -->
+                    <button onclick="insertWordTable()" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Chèn Bảng 3x3"><i class="fa-solid fa-table"></i></button>
+                    <button onclick="formatDoc('insertHorizontalRule')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200" title="Chèn đường gạch ngang"><i class="fa-solid fa-minus"></i></button>
+                    <button onclick="insertPageBreak()" class="px-2 py-1 hover:bg-slate-600 rounded text-amber-300 font-bold" title="Chèn ngắt trang A4"><i class="fa-solid fa-file-export"></i></button>
+
+                    <div class="h-4 w-px bg-slate-500 mx-0.5"></div>
+
+                    <!-- Clear formatting & Save -->
+                    <button onclick="formatDoc('removeFormat')" class="px-2 py-1 hover:bg-slate-600 rounded text-slate-200 text-rose-300" title="Xóa định dạng"><i class="fa-solid fa-eraser"></i></button>
+                    <button onclick="saveInlineEdits()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded flex items-center gap-1 shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Lưu Sửa
+                    </button>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div class="hidden sm:flex items-center bg-slate-700 rounded-lg p-1 text-xs">
+                    <button onclick="adjustZoom(-0.1)" class="px-2.5 py-1 hover:bg-slate-600 rounded text-slate-200" title="Thu nhỏ"><i class="fa-solid fa-minus"></i></button>
+                    <span id="zoom-level-text" class="px-2 font-mono font-bold">100%</span>
+                    <button onclick="adjustZoom(0.1)" class="px-2.5 py-1 hover:bg-slate-600 rounded text-slate-200" title="Phóng to"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+                <!-- Print / PDF Export Button -->
+                <button onclick="printDocument()" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow">
+                    <i class="fa-solid fa-print"></i> <span>In / Lưu PDF</span>
+                </button>
+
+                <!-- Copy Quick Answers -->
+                <button onclick="copyDocumentText()" class="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow">
+                    <i class="fa-solid fa-copy"></i> <span>Copy Nội Dung</span>
+                </button>
+
+                <!-- Download Word .docx -->
+                <button onclick="exportToWordDoc()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow">
+                    <i class="fa-solid fa-file-word"></i> <span>Tải File .doc</span>
+                </button>
+
+                <!-- Download PDF Button -->
+                <button onclick="printDocument()" class="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow">
+                    <i class="fa-solid fa-file-pdf"></i> <span>Download PDF</span>
+                </button>
+
+                <!-- Close Viewer -->
+                <button onclick="closeWordViewer()" class="px-3.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs ml-2">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Document Viewport Container -->
+        <div class="flex-1 overflow-y-auto bg-slate-300 dark:bg-slate-900/90 py-6 px-2 sm:px-6 flex justify-center" id="document-viewport">
+            <div id="print-area" class="transition-transform origin-top duration-200 flex justify-center">
+                <!-- Workspace with Horizontal Ruler -->
+                <div class="word-workspace-container">
+                    <!-- Word Top Horizontal Ruler -->
+                    <div class="word-ruler-horizontal no-print">
+                        <div class="ruler-margin-left"></div>
+                        <div class="ruler-marks"></div>
+                        <div class="ruler-margin-right"></div>
+                    </div>
+
+                    <!-- Multiple Word A4 Sheets Container -->
+                    <div class="a4-wrapper font-serifDoc" id="word-paper-container">
+                        <!-- Dynamic A4 Pages Injected Here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOCUMENT ADD/EDIT & WORD/PDF UPLOAD CRUD MODAL -->
+    <div id="doc-form-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-5 my-8">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 id="doc-modal-title" class="text-xl font-black text-slate-800 dark:text-white">Thêm / Upload Học Liệu</h3>
+                <button onclick="closeDocModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- FILE UPLOAD DROPZONE -->
+            <div id="file-dropzone" onclick="document.getElementById('file-upload-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" class="border-2 border-dashed border-sky-300 dark:border-sky-600/60 bg-sky-50/50 dark:bg-slate-700/30 hover:bg-sky-100/50 rounded-2xl p-6 text-center cursor-pointer transition-colors">
+                <input type="file" id="file-upload-input" accept=".docx,.doc,.pdf,.txt" class="hidden" onchange="handleFileSelect(event)">
+                <i class="fa-solid fa-cloud-arrow-up text-4xl text-sky-500 mb-2"></i>
+                <p class="font-extrabold text-sm text-slate-700 dark:text-slate-200">Kéo thả file Word (.docx) hoặc PDF (.pdf) vào đây</p>
+                <p class="text-xs text-slate-400 mt-1">hoặc click để chọn file từ máy tính/điện thoại (Tự động chuyển đổi sang khổ giấy Word A4)</p>
+                <div id="upload-status" class="hidden mt-3 text-xs font-bold text-emerald-600 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> <span>Đang xử lý và trích xuất tài liệu...</span>
+                </div>
+            </div>
+
+            <form id="doc-crud-form" onsubmit="saveDocumentForm(event)" class="space-y-4">
+                <input type="hidden" id="form-doc-id">
+
+                <div>
+                    <label class="block text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">Tiêu Đề Tài Liệu / Đề Thi</label>
+                    <input type="text" id="form-doc-title" required placeholder="Ví dụ: Đề Thi Giữa Kỳ 1 Tiếng Anh Khối 9 Có Lời Giải" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-bold text-sm focus:ring-2 focus:ring-sky-400">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">Cấp Học</label>
+                        <select id="form-doc-level" onchange="updateFormDropdowns()" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-bold text-sm">
+                            <option value="tieuhoc">TIỂU HỌC</option>
+                            <option value="thcs">THCS</option>
+                            <option value="thpt">THPT</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">Khối Lớp</label>
+                        <select id="form-doc-grade" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-bold text-sm">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">Thể Loại</label>
+                        <select id="form-doc-category" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-bold text-sm">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400 mb-1">Mô Tả Ngắn</label>
+                    <input type="text" id="form-doc-description" placeholder="Bao gồm các câu hỏi trắc nghiệm tự luận chọn lọc kèm đáp án..." class="w-full px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 border-none text-sm">
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-extrabold uppercase text-slate-500 dark:text-slate-400">Nội Dung Đề Thi & Lời Giải (Chuẩn Word HTML/Text)</label>
+                        <span class="text-xs text-sky-500 font-semibold">Dùng thẻ &lt;!--PAGE_BREAK--&gt; để tự định nghĩa ngắt trang A4</span>
+                    </div>
+                    <textarea id="form-doc-content" rows="10" required placeholder="Nội dung tự động xuất hiện khi upload file Word/PDF hoặc tự dán văn bản tại đây..." class="w-full p-4 rounded-xl bg-slate-100 dark:bg-slate-700 border-none font-serifDoc text-sm focus:ring-2 focus:ring-sky-400"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeDocModal()" class="px-5 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-700 font-bold text-sm">Hủy</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm shadow-md">Lưu Học Liệu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DYNAMIC FILTER ADMIN MODAL -->
+    <div id="filter-admin-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-500"></i> Quản Lý Bộ Lọc Động các Cấp
+                </h3>
+                <button onclick="closeAdminFilterModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- Level Selector for Editing Filters -->
+            <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 p-1.5 rounded-2xl">
+                <button onclick="switchAdminFilterTab('tieuhoc')" id="admin-tab-tieuhoc" class="flex-1 py-1.5 rounded-xl text-xs font-extrabold transition-all">TIỂU HỌC</button>
+                <button onclick="switchAdminFilterTab('thcs')" id="admin-tab-thcs" class="flex-1 py-1.5 rounded-xl text-xs font-extrabold transition-all">THCS</button>
+                <button onclick="switchAdminFilterTab('thpt')" id="admin-tab-thpt" class="flex-1 py-1.5 rounded-xl text-xs font-extrabold transition-all">THPT</button>
+            </div>
+
+            <div class="space-y-4 max-h-96 overflow-y-auto pr-1">
+                <!-- Grades Admin -->
+                <div>
+                    <h4 class="font-extrabold text-xs text-sky-600 dark:text-sky-400 mb-2 uppercase">Khối Lớp</h4>
+                    <div id="admin-grades-list" class="space-y-1.5 mb-2">
+                        <!-- Grade items -->
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-grade-input" placeholder="Tên khối lớp mới..." class="flex-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-xs border-none">
+                        <button onclick="addNewGradeOption()" class="px-3 py-1.5 rounded-xl bg-sky-500 text-white font-bold text-xs"><i class="fa-solid fa-plus"></i> Thêm</button>
+                    </div>
+                </div>
+
+                <!-- Categories Admin -->
+                <div class="border-t border-slate-200 dark:border-slate-700 pt-3">
+                    <h4 class="font-extrabold text-xs text-purple-600 dark:text-purple-400 mb-2 uppercase">Thể Loại / Kỹ Năng</h4>
+                    <div id="admin-categories-list" class="space-y-1.5 mb-2">
+                        <!-- Category items -->
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-category-input" placeholder="Thể loại mới..." class="flex-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-xs border-none">
+                        <button onclick="addNewCategoryOption()" class="px-3 py-1.5 rounded-xl bg-purple-500 text-white font-bold text-xs"><i class="fa-solid fa-plus"></i> Thêm</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 dark:border-slate-700 text-right">
+                <button onclick="closeAdminFilterModal()" class="px-5 py-2 rounded-xl bg-sky-500 text-white font-bold text-xs">Đóng & Hoàn Tất</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIVE CODE EDITOR MODAL -->
+    <div id="code-editor-modal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col p-4 sm:p-6">
+        <div class="bg-slate-800 rounded-2xl flex-1 flex flex-col overflow-hidden border border-slate-700 shadow-2xl">
+            <!-- Header -->
+            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between border-b border-slate-700">
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <h3 class="ml-2 font-mono font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-code text-purple-400"></i> Live Source Code Editor (index.html)
+                    </h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="applyLiveCode()" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-play"></i> Run & Apply
+                    </button>
+                    <button onclick="downloadSourceCode()" class="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 shadow">
+                        <i class="fa-solid fa-download"></i> Tải index.html
+                    </button>
+                    <button onclick="closeCodeEditor()" class="text-slate-400 hover:text-white ml-2">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Code Editor Textarea -->
+            <div class="flex-1 p-4 bg-slate-950 font-mono text-xs leading-relaxed">
+                <textarea id="live-code-textarea" class="w-full h-full bg-transparent text-emerald-400 focus:outline-none resize-none font-mono" spellcheck="false"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING ACTION BUTTON FOR QUICK CODE EDITOR ACCESS -->
+    <button onclick="openCodeEditor()" title="Mở Code Editor" class="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 text-white flex items-center justify-center text-xl shadow-xl hover:scale-110 transition-transform">
+        <i class="fa-solid fa-code"></i>
+    </button>
+
+    <!-- FOOTER SECTION -->
+    <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-8 px-4 transition-colors">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div>
+                <p class="font-bold text-sm text-slate-700 dark:text-slate-300">MyHub • Thư viện Học liệu & Đề thi</p>
+                <p class="text-xs text-slate-400">Designed with ❤️ for Cute Teachers. Built by Ms. Nhi</p>
+            </div>
+            <div class="text-xs text-slate-400">
+                &copy; 2026 MyHub Platform. Tất cả quyền được bảo lưu.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC & LOCALSTORAGE DATA ENGINE -->
+    <script>
+        /* ==========================================================================
+           1. INITIAL SAMPLE DATA & STATE MANAGEMENT
+           ========================================================================== */
+        
+        const DEFAULT_DOCUMENTS = [
+            {
+                id: "doc-1",
+                title: "Đề Thi Giữa Kỳ 1 Tiếng Anh Lớp 3 - Tiêu Chuẩn Bộ GD&ĐT",
+                level: "tieuhoc",
+                grade: "Khối 3",
+                category: "Đề Thi Giữa Kỳ",
+                description: "Đề thi đánh giá năng lực Nghe - Đọc - Viết gồm 20 câu hỏi có đáp án chi tiết.",
+                updatedAt: "2026-10-15",
+                content: `
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <p style="font-weight: bold; text-transform: uppercase; margin: 0; font-size: 11pt;">BỘ GIÁO DỤC VÀ ĐÀO TẠO — TRƯỜNG TIỂU HỌC NẮNG MAI</p>
+                        <h2 style="font-size: 16pt; font-weight: bold; margin: 10px 0 5px 0;">ĐỀ THI GIỮA KỲ 1 - MÔN TIẾNG ANH LỚP 3</h2>
+                        <p style="font-style: italic; margin: 0; font-size: 11pt;">Thời gian làm bài: 45 phút (Không kể thời gian phát đề)</p>
+                        <hr style="border: 0; border-top: 1.5px solid #111; margin: 15px 0;">
+                    </div>
+
+                    <h4 style="font-weight: bold; margin-top: 20px;">PART I. VOCABULARY AND GRAMMAR (6.0 points)</h4>
+                    <p><strong>Task 1. Choose the correct answer A, B, or C:</strong></p>
+                    <ol style="padding-left: 20px; line-height: 1.8;">
+                        <li>Hello, my name ________ Peter.<br>
+                            A. am &nbsp;&nbsp;&nbsp;&nbsp; B. is &nbsp;&nbsp;&nbsp;&nbsp; C. are</li>
+                        <li>How ________ are you? - I am eight years old.<br>
+                            A. old &nbsp;&nbsp;&nbsp;&nbsp; B. fine &nbsp;&nbsp;&nbsp;&nbsp; C. nice</li>
+                        <li>What is your favorite color? - It is ________.<br>
+                            A. pencil &nbsp;&nbsp;&nbsp;&nbsp; B. yellow &nbsp;&nbsp;&nbsp;&nbsp; C. cat</li>
+                    </ol>
+
+                    <!--PAGE_BREAK-->
+
+                    <h4 style="font-weight: bold; margin-top: 10px;">PART II. READING & WRITING (4.0 points)</h4>
+                    <p><strong>Task 2. Reorder the words to make complete sentences:</strong></p>
+                    <p>1. name / My / is / Mai. <br>→ ............................................................................................................</p>
+                    <p>2. meet / Nice / you / to. <br>→ ............................................................................................................</p>
+
+                    <div style="margin-top: 40px; padding: 20px; border: 1.5px dashed #333; background-color: #fcfcfc; border-radius: 6px;">
+                        <h3 style="font-weight: bold; color: #b91c1c; margin-top: 0; font-size: 14pt;">ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT</h3>
+                        <p><strong>Task 1:</strong> 1. B (is) | 2. A (old) | 3. B (yellow)</p>
+                        <p><strong>Task 2:</strong><br>
+                        1. My name is Mai.<br>
+                        2. Nice to meet you.</p>
+                    </div>
+                `
+            },
+            {
+                id: "doc-2",
+                title: "Đề Khảo Sát Chất Lượng Học Kỳ 1 Tiếng Anh Lớp 5",
+                level: "tieuhoc",
+                grade: "Khối 5",
+                category: "Đề Thi Học Kỳ",
+                description: "Tổng hợp kiến thức từ Unit 1 đến Unit 10, cấu trúc chuẩn kèm lời giải chi tiết.",
+                updatedAt: "2026-11-01",
+                content: `
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <h2 style="font-size: 16pt; font-weight: bold; margin: 0;">ĐỀ KIỂM TRA HỌC KỲ 1 - MÔN TIẾNG ANH 5</h2>
+                        <p style="font-style: italic; margin-top: 5px;">Thời gian: 45 phút</p>
+                        <hr style="border: 0; border-top: 1.5px solid #111; margin: 15px 0;">
+                    </div>
+                    <p><strong>I. Read and complete the text with given words: (family, lived, holiday, quiet)</strong></p>
+                    <p style="text-indent: 30px; line-height: 1.8;">
+                        Last summer, Nam went to Da Nang with his (1) _____________. They stayed in a nice hotel near the beach. The atmosphere was very (2) _____________ and peaceful.
+                    </p>
+                    <p><strong>II. Choose the correct verb form:</strong></p>
+                    <p>1. Yesterday, I (go / went / going) to the zoo with my classmates.</p>
+                    <p>2. Where will you be this weekend? - I think I (am / will / was) be on the beach.</p>
+
+                    <div style="margin-top: 40px; padding: 20px; border: 1.5px dashed #333; background-color: #fcfcfc;">
+                        <h3 style="font-weight: bold; color: #b91c1c; margin-top: 0; font-size: 14pt;">ĐÁP ÁN & LỜI GIẢI</h3>
+                        <p><strong>I. Điền từ:</strong> (1) family | (2) quiet</p>
+                        <p><strong>II. Trắc nghiệm:</strong> 1. went (Dấu hiệu "Yesterday") | 2. will (Thì tương lai đơn)</p>
+                    </div>
+                `
+            },
+            {
+                id: "doc-3",
+                title: "Đề Thi Học Sinh Giỏi Tiếng Anh Lớp 9 Cấp Thành Phố",
+                level: "thcs",
+                grade: "Khối 9",
+                category: "Học Sinh Giỏi",
+                description: "Đề thi chọn lọc bao gồm Ngữ pháp nâng cao, Viết lại câu & Bài đọc hiểu.",
+                updatedAt: "2026-10-20",
+                content: `
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <p style="font-weight: bold; font-size: 11pt;">SỞ GIÁO DỤC VÀ ĐÀO TẠO — THÀNH PHỐ HÀ NỘI</p>
+                        <h2 style="font-size: 16pt; font-weight: bold; margin: 10px 0;">ĐỀ THI CHỌN HỌC SINH GIỎI LỚP 9 MÔN TIẾNG ANH</h2>
+                        <p style="font-style: italic; margin: 0;">Thời gian làm bài: 120 phút</p>
+                        <hr style="border: 0; border-top: 1.5px solid #111; margin: 15px 0;">
+                    </div>
+
+                    <p><strong>SECTION A: GRAMMAR & VOCABULARY (30 points)</strong></p>
+                    <p>1. If I ________ enough money, I would buy that luxury apartment.<br>
+                    A. have &nbsp;&nbsp;&nbsp;&nbsp; B. had &nbsp;&nbsp;&nbsp;&nbsp; C. will have &nbsp;&nbsp;&nbsp;&nbsp; D. have had</p>
+                    <p>2. Hardly ________ entered the room when the phone rang.<br>
+                    A. had he &nbsp;&nbsp;&nbsp;&nbsp; B. he had &nbsp;&nbsp;&nbsp;&nbsp; C. did he &nbsp;&nbsp;&nbsp;&nbsp; D. he did</p>
+
+                    <!--PAGE_BREAK-->
+
+                    <p><strong>SECTION B: SENTENCE TRANSFORMATION (20 points)</strong></p>
+                    <p>1. People say that he works 12 hours a day.<br>
+                    → He is ........................................................................................................................</p>
+
+                    <div style="margin-top: 40px; padding: 20px; border: 1.5px dashed #333; background-color: #fcfcfc;">
+                        <h3 style="font-weight: bold; color: #b91c1c; margin-top: 0; font-size: 14pt;">LỜI GIẢI CHI TIẾT HỌC SINH GIỎI</h3>
+                        <p><strong>Section A:</strong> 1. B (Câu điều kiện loại 2) | 2. A (Đảo ngữ với Hardly had + S + V3)</p>
+                        <p><strong>Section B:</strong> 1. He is said to work 12 hours a day.</p>
+                    </div>
+                `
+            },
+            {
+                id: "doc-4",
+                title: "Bộ Đề Thi Thử Tốt Nghiệp THPT 2026 Môn Tiếng Anh",
+                level: "thpt",
+                grade: "Khối 12",
+                category: "Thi Tốt Nghiệp THPT",
+                description: "50 câu trắc nghiệm bám sát ma trận đề minh họa mới nhất có đáp án giải thích.",
+                updatedAt: "2026-11-04",
+                content: `
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <h2 style="font-size: 16pt; font-weight: bold; margin: 0;">ĐỀ THI THỬ TỐT NGHIỆP THPT NATIONAL EXAM 2026</h2>
+                        <p style="font-style: italic; margin-top: 5px;">Môn: Tiếng Anh • Mã đề: 104</p>
+                        <hr style="border: 0; border-top: 1.5px solid #111; margin: 15px 0;">
+                    </div>
+
+                    <p><strong>Mark the letter A, B, C, or D to indicate the correct answer to each question:</strong></p>
+                    <p>Question 1. The new educational program aims to ________ critical thinking skills in students.<br>
+                    A. foster &nbsp;&nbsp;&nbsp;&nbsp; B. destroy &nbsp;&nbsp;&nbsp;&nbsp; C. neglect &nbsp;&nbsp;&nbsp;&nbsp; D. abandon</p>
+                    <p>Question 2. She has lived in Ha Noi ________ 2018.<br>
+                    A. for &nbsp;&nbsp;&nbsp;&nbsp; B. since &nbsp;&nbsp;&nbsp;&nbsp; C. in &nbsp;&nbsp;&nbsp;&nbsp; D. at</p>
+
+                    <div style="margin-top: 40px; padding: 20px; border: 1.5px dashed #333; background-color: #fcfcfc;">
+                        <h3 style="font-weight: bold; color: #b91c1c; margin-top: 0; font-size: 14pt;">HƯỚNG DẪN GIẢI CHI TIẾT</h3>
+                        <p><strong>Question 1:</strong> Chọn A. Foster (thúc đẩy, nuôi dưỡng). Dịch nghĩa: Chương trình mới nhằm thúc đẩy kỹ năng tư duy phản biện.</p>
+                        <p><strong>Question 2:</strong> Chọn B. Since + mốc thời gian (2018) dùng trong thì Hiện tại hoàn thành.</p>
+                    </div>
+                `
+            }
+        ];
+
+        const DEFAULT_FILTERS = {
+            tieuhoc: {
+                grades: [
+                    { id: "g1", name: "Khối 1", locked: false },
+                    { id: "g2", name: "Khối 2", locked: false },
+                    { id: "g3", name: "Khối 3", locked: false },
+                    { id: "g4", name: "Khối 4", locked: false },
+                    { id: "g5", name: "Khối 5", locked: false }
+                ],
+                categories: [
+                    { id: "c1", name: "Đề Thi Giữa Kỳ", locked: false },
+                    { id: "c2", name: "Đề Thi Học Kỳ", locked: false },
+                    { id: "c3", name: "Bài Tập Hàng Ngày", locked: false },
+                    { id: "c4", name: "Ôn Tập Hè", locked: false }
+                ]
+            },
+            thcs: {
+                grades: [
+                    { id: "g6", name: "Khối 6", locked: false },
+                    { id: "g7", name: "Khối 7", locked: false },
+                    { id: "g8", name: "Khối 8", locked: false },
+                    { id: "g9", name: "Khối 9", locked: false }
+                ],
+                categories: [
+                    { id: "c5", name: "Đề Thi Giữa Kỳ", locked: false },
+                    { id: "c6", name: "Đề Thi Học Kỳ", locked: false },
+                    { id: "c7", name: "Học Sinh Giỏi", locked: false },
+                    { id: "c8", name: "Thi Vào 10", locked: false }
+                ]
+            },
+            thpt: {
+                grades: [
+                    { id: "g10", name: "Khối 10", locked: false },
+                    { id: "g11", name: "Khối 11", locked: false },
+                    { id: "g12", name: "Khối 12", locked: false }
+                ],
+                categories: [
+                    { id: "c9", name: "Đề Thi Giữa Kỳ", locked: false },
+                    { id: "c10", name: "Đề Thi Học Kỳ", locked: false },
+                    { id: "c11", name: "Thi Tốt Nghiệp THPT", locked: false },
+                    { id: "c12", name: "Luyện Thi IELTS/SAT", locked: false }
+                ]
+            }
+        };
+
+        // Global State Variables
+        let documents = JSON.parse(localStorage.getItem('myhub_docs')) || DEFAULT_DOCUMENTS;
+        let filterConfig = JSON.parse(localStorage.getItem('myhub_filters')) || DEFAULT_FILTERS;
+        let currentLevel = 'tieuhoc';
+        let isAdminLoggedIn = localStorage.getItem('myhub_admin_logged') === 'true';
+        let currentEditingDocId = null;
+        let currentDocInViewer = null;
+        let currentZoomLevel = 1.0;
+        let adminFilterActiveLevel = 'tieuhoc';
+        let isInlineEditing = false;
+
+        /* ==========================================================================
+           2. APP INITIALIZATION & THEME LOGIC
+           ========================================================================== */
+        window.onload = function() {
+            loadSiteConfig();
+            selectLevel('tieuhoc');
+            updateAdminUIState();
+        };
+
+        function selectLevel(levelKey) {
+            currentLevel = levelKey;
+            
+            document.querySelectorAll('.level-tab').forEach(tab => {
+                tab.classList.remove('bg-sky-500', 'text-white', 'shadow-md', 'bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+                tab.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+            });
+
+            const activeTab = document.getElementById(`tab-${levelKey}`);
+            if (activeTab) {
+                activeTab.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+                activeTab.classList.add('bg-sky-500', 'text-white', 'shadow-md');
+            }
+
+            const levelNames = { tieuhoc: 'TIỂU HỌC', thcs: 'THCS', thpt: 'THPT' };
+            document.getElementById('current-level-label').innerText = levelNames[levelKey];
+
+            populateFilterDropdowns();
+            applyFilters();
+        }
+
+        function populateFilterDropdowns() {
+            const gradeSelect = document.getElementById('grade-filter');
+            const catSelect = document.getElementById('category-filter');
+
+            const levelData = filterConfig[currentLevel] || { grades: [], categories: [] };
+
+            gradeSelect.innerHTML = '<option value="ALL">Tất cả Khối lớp</option>';
+            levelData.grades.filter(g => !g.locked).forEach(g => {
+                gradeSelect.innerHTML += `<option value="${g.name}">${g.name}</option>`;
+            });
+
+            catSelect.innerHTML = '<option value="ALL">Tất cả Thể loại</option>';
+            levelData.categories.filter(c => !c.locked).forEach(c => {
+                catSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const selectedGrade = document.getElementById('grade-filter').value;
+            const selectedCat = document.getElementById('category-filter').value;
+
+            const filteredDocs = documents.filter(doc => {
+                const matchLevel = doc.level === currentLevel;
+                const matchSearch = doc.title.toLowerCase().includes(query) || (doc.description && doc.description.toLowerCase().includes(query));
+                const matchGrade = selectedGrade === 'ALL' || doc.grade === selectedGrade;
+                const matchCat = selectedCat === 'ALL' || doc.category === selectedCat;
+
+                return matchLevel && matchSearch && matchGrade && matchCat;
+            });
+
+            renderDocGrid(filteredDocs);
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('grade-filter').value = 'ALL';
+            document.getElementById('category-filter').value = 'ALL';
+            applyFilters();
+        }
+
+        /* ==========================================================================
+           3. RENDER DOCUMENT CARDS
+           ========================================================================== */
+        function renderDocGrid(docs) {
+            const grid = document.getElementById('doc-grid');
+            const emptyState = document.getElementById('empty-state');
+            document.getElementById('doc-count').innerText = docs.length;
+
+            grid.innerHTML = '';
+
+            if (docs.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            docs.forEach(doc => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-700 hover-bounce shadow-sm flex flex-col justify-between transition-all relative group";
+
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="px-3 py-1 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300 font-extrabold text-xs">
+                                ${doc.grade}
+                            </span>
+                            <span class="px-3 py-1 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300 font-extrabold text-xs">
+                                ${doc.category}
+                            </span>
+                        </div>
+
+                        <h4 class="font-extrabold text-base sm:text-lg text-slate-800 dark:text-white line-clamp-2 hover:text-sky-500 cursor-pointer transition-colors" onclick="openWordViewer('${doc.id}')">
+                            ${doc.title}
+                        </h4>
+
+                        <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                            ${doc.description || 'Nội dung đề thi kèm lời giải chi tiết chuẩn Word A4...'}
+                        </p>
+                    </div>
+
+                    <div class="pt-5 mt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <span class="text-xs text-slate-400 font-medium"><i class="fa-regular fa-clock"></i> ${doc.updatedAt || 'Mới cập nhật'}</span>
+
+                        <div class="flex items-center gap-2">
+                            ${isAdminLoggedIn ? `
+                                <button onclick="editDocument('${doc.id}')" title="Sửa học liệu" class="p-2 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 hover:bg-amber-200 text-xs">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button onclick="deleteDocument('${doc.id}')" title="Xóa học liệu" class="p-2 rounded-xl bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 hover:bg-rose-200 text-xs">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            ` : ''}
+
+                            <button onclick="openWordViewer('${doc.id}')" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-md shadow-sky-200 dark:shadow-none transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-eye"></i> Xem A4
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        /* ==========================================================================
+           4. WORD & PDF UPLOAD FILE ENGINE
+           ========================================================================== */
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('file-dropzone').classList.add('border-sky-500', 'bg-sky-100/80');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('file-dropzone').classList.remove('border-sky-500', 'bg-sky-100/80');
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('file-dropzone').classList.remove('border-sky-500', 'bg-sky-100/80');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                processUploadedFile(e.dataTransfer.files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                processUploadedFile(e.target.files[0]);
+            }
+        }
+
+        function processUploadedFile(file) {
+            const statusBox = document.getElementById('upload-status');
+            statusBox.classList.remove('hidden');
+
+            // Auto fill title from file name
+            const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+            if (!document.getElementById('form-doc-title').value) {
+                document.getElementById('form-doc-title').value = fileNameWithoutExt;
+            }
+
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            if (ext === 'docx') {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const arrayBuffer = event.target.result;
+                    
+                    // TUÂN THỦ TUYỆT ĐỐI CẤU TRÚC: Cấp độ Heading, Danh sách, Bảng biểu, Hình ảnh
+                    const options = {
+                        styleMap: [
+                            "p[style-name='Heading 1'] => h1:fresh",
+                            "p[style-name='Heading 2'] => h2:fresh",
+                            "p[style-name='Heading 3'] => h3:fresh",
+                            "p[style-name='Heading 4'] => h4:fresh",
+                            "p[style-name='Heading 5'] => h5:fresh",
+                            "p[style-name='Heading 6'] => h6:fresh",
+                            "p[style-name='Title'] => h1.title:fresh",
+                            "p[style-name='Subtitle'] => p.subtitle:fresh",
+                            "p[style-name='List Paragraph'] => li:fresh",
+                            "b => strong",
+                            "i => em",
+                            "u => ins",
+                            "strike => del",
+                            "table => table.a4-table:fresh",
+                            "tr => tr:fresh",
+                            "td => td:fresh"
+                        ],
+                        includeDefaultStyleMap: true,
+                        convertImage: mammoth.images.imgElement(function(image) {
+                            return image.read("base64").then(function(imageBuffer) {
+                                return {
+                                    src: "data:" + image.contentType + ";base64," + imageBuffer
+                                };
+                            });
+                        })
+                    };
+
+                    mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, options)
+                        .then(function(result) {
+                            // Trả về đúng 100% nguyên văn HTML xuất ra từ Mammoth
+                            document.getElementById('form-doc-content').value = result.value;
+                            statusBox.classList.add('hidden');
+                        })
+                        .catch(function(err) {
+                            alert("Có lỗi khi đọc file Word .docx!");
+                            statusBox.classList.add('hidden');
+                        });
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (ext === 'pdf') {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const typedarray = new Uint8Array(event.target.result);
+                    pdfjsLib.getDocument(typedarray).promise.then(async function(pdf) {
+                        let fullHtml = '';
+
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const textContent = await page.getTextContent();
+                            
+                            let lastY = null;
+                            let pageHtml = '<p style="line-height: 1.6; margin-bottom: 0.8em;">';
+
+                            // Giữ nguyên chính xác vị trí dòng và toàn bộ câu chữ nguyên bản
+                            for (let item of textContent.items) {
+                                if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                                    pageHtml += '</p><p style="line-height: 1.6; margin-bottom: 0.8em;">';
+                                }
+                                pageHtml += item.str + ' ';
+                                lastY = item.transform[5];
+                            }
+                            pageHtml += '</p>';
+
+                            fullHtml += pageHtml;
+
+                            if (pageNum < pdf.numPages) {
+                                fullHtml += '\n<!--PAGE_BREAK-->\n';
+                            }
+                        }
+
+                        document.getElementById('form-doc-content').value = fullHtml;
+                        statusBox.classList.add('hidden');
+                    }).catch(function(err) {
+                        alert("Có lỗi khi giải mã file PDF!");
+                        statusBox.classList.add('hidden');
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                // Fallback cho file .txt giữ nguyên 100% dòng lệnh và ký tự
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const text = event.target.result;
+                    const formattedHtml = `<div style="white-space: pre-wrap; line-height: 1.6; font-family: 'Times New Roman', serif;">${text}</div>`;
+                    document.getElementById('form-doc-content').value = formattedHtml;
+                    statusBox.classList.add('hidden');
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        /* ==========================================================================
+           5. WORD A4 MULTI-PAGE DOCUMENT VIEWER
+           ========================================================================== */
+        function openWordViewer(docId) {
+            const doc = documents.find(d => d.id === docId);
+            if (!doc) return;
+
+            currentDocInViewer = doc;
+            document.getElementById('modal-doc-title').innerText = doc.title;
+            document.getElementById('modal-doc-meta').innerText = `${doc.level.toUpperCase()} • ${doc.grade} • ${doc.category}`;
+
+            const paperContainer = document.getElementById('word-paper-container');
+            paperContainer.innerHTML = '';
+
+            // Split pages using page break marker or render single page
+            const pageContents = doc.content.split(/<!--\s*PAGE_BREAK\s*-->/gi);
+
+            pageContents.forEach((pageHTML, index) => {
+                const pageElement = document.createElement('div');
+                pageElement.className = 'a4-page';
+                pageElement.innerHTML = `
+                    ${pageHTML}
+                    <div class="no-print" style="position: absolute; bottom: 8mm; right: 15mm; font-size: 9pt; color: #94a3b8; font-family: sans-serif;">
+                        Trang ${index + 1} / ${pageContents.length}
+                    </div>
+                `;
+                paperContainer.appendChild(pageElement);
+            });
+
+            currentZoomLevel = 1.0;
+            applyZoom();
+
+            document.getElementById('word-viewer-modal').classList.remove('hidden');
+        }
+
+        function closeWordViewer() {
+            if (isInlineEditing) {
+                toggleInlineEdit(false);
+            }
+            document.getElementById('word-viewer-modal').classList.add('hidden');
+            currentDocInViewer = null;
+        }
+
+        /* ==========================================================================
+           5.1 LIVE INLINE EDITING LOGIC FOR WORD A4 VIEWER
+           ========================================================================== */
+        function toggleInlineEdit(forceState = null) {
+            isInlineEditing = forceState !== null ? forceState : !isInlineEditing;
+            const pages = document.querySelectorAll('.a4-page');
+            const editBtnText = document.getElementById('edit-btn-text');
+            const editBtn = document.getElementById('toggle-edit-btn');
+            const formatBar = document.getElementById('formatting-toolbar');
+
+            pages.forEach(page => {
+                page.setAttribute('contenteditable', isInlineEditing ? 'true' : 'false');
+            });
+
+            if (isInlineEditing) {
+                editBtnText.innerText = 'Tắt Chỉnh Sửa';
+                editBtn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+                editBtn.classList.add('bg-rose-600', 'hover:bg-rose-500');
+                formatBar.classList.remove('hidden');
+            } else {
+                editBtnText.innerText = 'Bật Chỉnh Sửa';
+                editBtn.classList.remove('bg-rose-600', 'hover:bg-rose-500');
+                editBtn.classList.add('bg-amber-600', 'hover:bg-amber-500');
+                formatBar.classList.add('hidden');
+            }
+        }
+
+        function formatDoc(command, value = null) {
+            if (!isInlineEditing) return;
+            document.execCommand(command, false, value);
+        }
+
+        function insertWordTable() {
+            if (!isInlineEditing) return;
+            const tableHTML = `
+                <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                    <tbody>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;"><strong>Cột 1</strong></td>
+                            <td style="border: 1px solid #000; padding: 8px;"><strong>Cột 2</strong></td>
+                            <td style="border: 1px solid #000; padding: 8px;"><strong>Cột 3</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">Nội dung 1</td>
+                            <td style="border: 1px solid #000; padding: 8px;">Nội dung 2</td>
+                            <td style="border: 1px solid #000; padding: 8px;">Nội dung 3</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            document.execCommand('insertHTML', false, tableHTML);
+        }
+
+        function insertPageBreak() {
+            if (!isInlineEditing) return;
+            document.execCommand('insertHTML', false, '<p style="text-align:center; color:#94a3b8; font-size:10pt;">--- <!--PAGE_BREAK--> Ngắt Trang A4 ---</p>');
+        }
+
+        function saveInlineEdits() {
+            if (!currentDocInViewer) return;
+
+            const paperContainer = document.getElementById('word-paper-container');
+            const pages = paperContainer.querySelectorAll('.a4-page');
+            let updatedHtmlParts = [];
+
+            pages.forEach(page => {
+                const clone = page.cloneNode(true);
+                // Remove page number element before saving
+                const noPrintElem = clone.querySelector('.no-print');
+                if (noPrintElem) noPrintElem.remove();
+                updatedHtmlParts.push(clone.innerHTML.trim());
+            });
+
+            const newFullContent = updatedHtmlParts.join('\n<!--PAGE_BREAK-->\n');
+
+            // Save to documents array
+            const docIndex = documents.findIndex(d => d.id === currentDocInViewer.id);
+            if (docIndex !== -1) {
+                documents[docIndex].content = newFullContent;
+                documents[docIndex].updatedAt = new Date().toISOString().split('T')[0];
+                currentDocInViewer.content = newFullContent;
+                localStorage.setItem('myhub_docs', JSON.stringify(documents));
+                applyFilters();
+                alert("Đã lưu các thay đổi vào học liệu thành công!");
+            }
+        }
+
+        function adjustZoom(delta) {
+            currentZoomLevel = Math.min(Math.max(currentZoomLevel + delta, 0.5), 1.5);
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const printArea = document.getElementById('print-area');
+            printArea.style.transform = `scale(${currentZoomLevel})`;
+            document.getElementById('zoom-level-text').innerText = `${Math.round(currentZoomLevel * 100)}%`;
+        }
+
+        function printDocument() {
+            window.print();
+        }
+
+        function copyDocumentText() {
+            if (!currentDocInViewer) return;
+            const tempElem = document.createElement('div');
+            tempElem.innerHTML = currentDocInViewer.content;
+            const plainText = tempElem.innerText || tempElem.textContent;
+
+            const textarea = document.createElement('textarea');
+            textarea.value = plainText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                alert("Đã sao chép toàn bộ nội dung đề thi & lời giải vào bộ nhớ tạm!");
+            } catch (err) {
+                alert("Không thể sao chép tự động!");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function exportToWordDoc() {
+            if (!currentDocInViewer) return;
+            
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export Document</title><style>body { font-family: 'Times New Roman', serif; font-size: 13pt; line-height: 1.5; }</style></head><body>";
+            const footer = "</body></html>";
+            const sourceHTML = header + document.getElementById('word-paper-container').innerHTML + footer;
+
+            const blob = new Blob(['\ufeff' + sourceHTML], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentDocInViewer.title.replace(/[^a-zA-Z0-9-ĐđÀ-ỹ]/g, '_')}.doc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        /* ==========================================================================
+           6. ADMIN AUTHENTICATION & CRUD MANAGEMENT
+           ========================================================================== */
+        function handleAdminAuth() {
+            if (isAdminLoggedIn) {
+                document.getElementById('admin-panel-drawer').classList.remove('hidden');
+            } else {
+                const pin = prompt("Nhập mã PIN Quản trị viên (Mặc định: 1234):");
+                if (pin === "1234") {
+                    isAdminLoggedIn = true;
+                    localStorage.setItem('myhub_admin_logged', 'true');
+                    updateAdminUIState();
+                    alert("Đăng nhập Admin thành công!");
+                } else if (pin !== null) {
+                    alert("Mã PIN không chính xác!");
+                }
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            localStorage.setItem('myhub_admin_logged', 'false');
+            closeAdminDrawer();
+            updateAdminUIState();
+            alert("Đã đăng xuất khỏi chế độ Quản trị!");
+        }
+
+        function closeAdminDrawer() {
+            document.getElementById('admin-panel-drawer').classList.add('hidden');
+        }
+
+        function updateAdminUIState() {
+            const adminBtnText = document.getElementById('admin-btn-text');
+            const adminEditFiltersBtn = document.getElementById('admin-edit-filters-btn');
+            const adminAddDocBtn = document.getElementById('admin-add-doc-btn');
+
+            if (isAdminLoggedIn) {
+                adminBtnText.innerText = "Admin Panel";
+                adminEditFiltersBtn.classList.remove('hidden');
+                adminAddDocBtn.classList.remove('hidden');
+            } else {
+                adminBtnText.innerText = "Admin";
+                adminEditFiltersBtn.classList.add('hidden');
+                adminAddDocBtn.classList.add('hidden');
+            }
+            applyFilters();
+        }
+
+        function openDocModal(docId = null) {
+            currentEditingDocId = docId;
+            const modalTitle = document.getElementById('doc-modal-title');
+            
+            updateFormDropdowns();
+
+            if (docId) {
+                modalTitle.innerText = "Chỉnh Sửa Học Liệu";
+                const doc = documents.find(d => d.id === docId);
+                if (doc) {
+                    document.getElementById('form-doc-id').value = doc.id;
+                    document.getElementById('form-doc-title').value = doc.title;
+                    document.getElementById('form-doc-level').value = doc.level;
+                    updateFormDropdowns();
+                    document.getElementById('form-doc-grade').value = doc.grade;
+                    document.getElementById('form-doc-category').value = doc.category;
+                    document.getElementById('form-doc-description').value = doc.description || '';
+                    document.getElementById('form-doc-content').value = doc.content;
+                }
+            } else {
+                modalTitle.innerText = "Thêm / Upload Học Liệu Mới";
+                document.getElementById('doc-crud-form').reset();
+                document.getElementById('form-doc-id').value = '';
+                document.getElementById('form-doc-level').value = currentLevel;
+                updateFormDropdowns();
+            }
+
+            document.getElementById('doc-form-modal').classList.remove('hidden');
+        }
+
+        function closeDocModal() {
+            document.getElementById('doc-form-modal').classList.add('hidden');
+            currentEditingDocId = null;
+        }
+
+        function updateFormDropdowns() {
+            const level = document.getElementById('form-doc-level').value;
+            const gradeSelect = document.getElementById('form-doc-grade');
+            const catSelect = document.getElementById('form-doc-category');
+
+            const levelData = filterConfig[level] || { grades: [], categories: [] };
+
+            gradeSelect.innerHTML = '';
+            levelData.grades.filter(g => !g.locked).forEach(g => {
+                gradeSelect.innerHTML += `<option value="${g.name}">${g.name}</option>`;
+            });
+
+            catSelect.innerHTML = '';
+            levelData.categories.filter(c => !c.locked).forEach(c => {
+                catSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+        }
+
+        function saveDocumentForm(e) {
+            e.preventDefault();
+
+            const docId = document.getElementById('form-doc-id').value;
+            const docObj = {
+                id: docId || 'doc-' + Date.now(),
+                title: document.getElementById('form-doc-title').value,
+                level: document.getElementById('form-doc-level').value,
+                grade: document.getElementById('form-doc-grade').value,
+                category: document.getElementById('form-doc-category').value,
+                description: document.getElementById('form-doc-description').value,
+                content: document.getElementById('form-doc-content').value,
+                updatedAt: new Date().toISOString().split('T')[0]
+            };
+
+            if (docId) {
+                const index = documents.findIndex(d => d.id === docId);
+                if (index !== -1) documents[index] = docObj;
+            } else {
+                documents.unshift(docObj);
+            }
+
+            localStorage.setItem('myhub_docs', JSON.stringify(documents));
+            closeDocModal();
+            applyFilters();
+            alert("Đã lưu học liệu thành công!");
+        }
+
+        function editDocument(docId) {
+            openDocModal(docId);
+        }
+
+        function deleteDocument(docId) {
+            if (confirm("Bạn có chắc chắn muốn xóa học liệu này? Hành động không thể hoàn tác.")) {
+                documents = documents.filter(d => d.id !== docId);
+                localStorage.setItem('myhub_docs', JSON.stringify(documents));
+                applyFilters();
+            }
+        }
+
+        /* ==========================================================================
+           7. DYNAMIC FILTER ADMIN
+           ========================================================================== */
+        function openAdminFilterModal() {
+            switchAdminFilterTab(currentLevel);
+            document.getElementById('filter-admin-modal').classList.remove('hidden');
+        }
+
+        function closeAdminFilterModal() {
+            document.getElementById('filter-admin-modal').classList.add('hidden');
+            populateFilterDropdowns();
+            applyFilters();
+        }
+
+        function switchAdminFilterTab(levelKey) {
+            adminFilterActiveLevel = levelKey;
+
+            ['tieuhoc', 'thcs', 'thpt'].forEach(lvl => {
+                const tabBtn = document.getElementById(`admin-tab-${lvl}`);
+                if (lvl === levelKey) {
+                    tabBtn.className = "flex-1 py-1.5 rounded-xl text-xs font-extrabold transition-all bg-amber-500 text-white shadow";
+                } else {
+                    tabBtn.className = "flex-1 py-1.5 rounded-xl text-xs font-extrabold transition-all text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600";
+                }
+            });
+
+            renderAdminFilterLists();
+        }
+
+        function renderAdminFilterLists() {
+            const data = filterConfig[adminFilterActiveLevel];
+            const gradesContainer = document.getElementById('admin-grades-list');
+            const catContainer = document.getElementById('admin-categories-list');
+
+            gradesContainer.innerHTML = '';
+            data.grades.forEach(g => {
+                gradesContainer.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-700/60 px-3 py-1.5 rounded-xl text-xs font-bold">
+                        <span class="${g.locked ? 'line-through text-slate-400' : ''}">${g.name}</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="toggleLockFilter('grades', '${g.id}')" title="Khóa/Mở" class="p-1 hover:text-amber-500">
+                                <i class="fa-solid ${g.locked ? 'fa-lock text-rose-500' : 'fa-lock-open text-emerald-500'}"></i>
+                            </button>
+                            <button onclick="deleteFilterOption('grades', '${g.id}')" title="Xóa" class="p-1 hover:text-rose-500">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            catContainer.innerHTML = '';
+            data.categories.forEach(c => {
+                catContainer.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-700/60 px-3 py-1.5 rounded-xl text-xs font-bold">
+                        <span class="${c.locked ? 'line-through text-slate-400' : ''}">${c.name}</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="toggleLockFilter('categories', '${c.id}')" title="Khóa/Mở" class="p-1 hover:text-amber-500">
+                                <i class="fa-solid ${c.locked ? 'fa-lock text-rose-500' : 'fa-lock-open text-emerald-500'}"></i>
+                            </button>
+                            <button onclick="deleteFilterOption('categories', '${c.id}')" title="Xóa" class="p-1 hover:text-rose-500">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function addNewGradeOption() {
+            const input = document.getElementById('new-grade-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            filterConfig[adminFilterActiveLevel].grades.push({
+                id: 'g_' + Date.now(),
+                name: val,
+                locked: false
+            });
+
+            localStorage.setItem('myhub_filters', JSON.stringify(filterConfig));
+            input.value = '';
+            renderAdminFilterLists();
+        }
+
+        function addNewCategoryOption() {
+            const input = document.getElementById('new-category-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            filterConfig[adminFilterActiveLevel].categories.push({
+                id: 'c_' + Date.now(),
+                name: val,
+                locked: false
+            });
+
+            localStorage.setItem('myhub_filters', JSON.stringify(filterConfig));
+            input.value = '';
+            renderAdminFilterLists();
+        }
+
+        function toggleLockFilter(type, id) {
+            const item = filterConfig[adminFilterActiveLevel][type].find(x => x.id === id);
+            if (item) {
+                item.locked = !item.locked;
+                localStorage.setItem('myhub_filters', JSON.stringify(filterConfig));
+                renderAdminFilterLists();
+            }
+        }
+
+        function deleteFilterOption(type, id) {
+            filterConfig[adminFilterActiveLevel][type] = filterConfig[adminFilterActiveLevel][type].filter(x => x.id !== id);
+            localStorage.setItem('myhub_filters', JSON.stringify(filterConfig));
+            renderAdminFilterLists();
+        }
+
+        /* ==========================================================================
+           8. CONFIG & LIVE CODE EDITOR TOOL
+           ========================================================================== */
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.className = 'fa-solid fa-moon';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun';
+            }
+        }
+
+        function loadSiteConfig() {
+            const config = JSON.parse(localStorage.getItem('myhub_config')) || {
+                title: 'MyHub',
+                slogan: 'Keep moving forward. One step at a time'
+            };
+
+            document.getElementById('brand-name').innerText = config.title;
+            document.getElementById('config-site-title').value = config.title;
+            document.getElementById('hero-slogan').innerText = config.slogan;
+            document.getElementById('config-site-slogan').value = config.slogan;
+        }
+
+        function saveSiteConfig() {
+            const title = document.getElementById('config-site-title').value.trim();
+            const slogan = document.getElementById('config-site-slogan').value.trim();
+
+            const config = { title, slogan };
+            localStorage.setItem('myhub_config', JSON.stringify(config));
+            loadSiteConfig();
+            alert("Đã cập nhật cấu hình giao diện website!");
+        }
+
+        function openCodeEditor() {
+            const codeTextarea = document.getElementById('live-code-textarea');
+            codeTextarea.value = document.documentElement.outerHTML;
+            document.getElementById('code-editor-modal').classList.remove('hidden');
+        }
+
+        function closeCodeEditor() {
+            document.getElementById('code-editor-modal').classList.add('hidden');
+        }
+
+        function applyLiveCode() {
+            const newCode = document.getElementById('live-code-textarea').value;
+            document.open();
+            document.write(newCode);
+            document.close();
+        }
+
+        function downloadSourceCode() {
+            const code = document.getElementById('live-code-textarea').value;
+            const blob = new Blob([code], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
